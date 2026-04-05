@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Predict-then-optimize for multi-SKU inventory | Engineering Systems Design Report</title>
+  <style>
+    :root {
+      --ink: #1c1c1c;
+      --muted: #4a4a4a;
+      --rule: #333;
+      --border: #c8c8c8;
+      --table-head: #e8e8e8;
+      --accent: #1a365d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Georgia", "Times New Roman", serif;
+      font-size: 11pt;
+      line-height: 1.52;
+      color: var(--ink);
+      max-width: 50rem;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+      background: #fff;
+    }
+    .cover {
+      border: 2px solid var(--rule);
+      padding: 1.75rem 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+    .cover-label {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 0.5rem;
+    }
+    .cover h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem;
+      line-height: 1.25;
+      color: var(--accent);
+    }
+    .cover .tagline {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin: 0 0 1.25rem;
+    }
+    .meta-grid {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.8rem;
+      display: grid;
+      grid-template-columns: 9rem 1fr;
+      gap: 0.35rem 1rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+    }
+    .meta-grid dt { color: var(--muted); margin: 0; }
+    .meta-grid dd { margin: 0; }
+
+    h2 {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 1.08rem;
+      font-weight: 650;
+      color: var(--accent);
+      margin: 2.25rem 0 0.75rem;
+      padding-bottom: 0.25rem;
+      border-bottom: 2px solid var(--rule);
+    }
+    h2 .num { color: var(--muted); font-weight: 600; margin-right: 0.35rem; }
+
+    h3 {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.93rem;
+      font-weight: 600;
+      margin: 1.35rem 0 0.5rem;
+      color: var(--ink);
+    }
+
+    p { margin: 0.5rem 0; text-align: justify; hyphens: auto; }
+    ul { margin: 0.4rem 0 0.6rem 1.2rem; }
+    li { margin: 0.28rem 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.81rem;
+      margin: 0.55rem 0 1rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.45rem 0.55rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--table-head); font-weight: 600; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    .exec-summary {
+      background: #f6f8fa;
+      border-left: 4px solid var(--accent);
+      padding: 0.95rem 1.05rem;
+      margin: 1rem 0 1.25rem;
+      font-size: 0.95rem;
+    }
+    .exec-summary ul { margin: 0.5rem 0 0 1rem; }
+
+    pre.flow {
+      font-family: "Consolas", "Monaco", monospace;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      background: #f4f4f4;
+      border: 1px solid var(--border);
+      padding: 0.85rem 1rem;
+      overflow-x: auto;
+      margin: 0.75rem 0 1rem;
+    }
+
+    figure { margin: 1rem 0; text-align: center; }
+    figcaption {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+    }
+    img { max-width: 100%; height: auto; border: 1px solid var(--border); }
+
+    .callout {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.88rem;
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      margin: 1rem 0;
+      background: #fafafa;
+    }
+
+    .footer-note {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 2.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    code { font-size: 0.9em; background: #eee; padding: 0.08em 0.3em; }
+  </style>
+</head>
+<body>
+
+  <header class="cover">
+    <p class="cover-label">Engineering Systems Design Report</p>
+    <h1>Predict-then-optimize for multi-SKU inventory</h1>
+    <p class="tagline">Predict-then-optimize inventory pipeline · UCI Online Retail weekly panel · realized KPIs under true demand</p>
+    <dl class="meta-grid">
+      <dt>Revision</dt>
+      <dd>2026-04-05 08:55 UTC</dd>
+      <dt>Data source</dt>
+      <dd>UCI Online Retail (weekly aggregate)</dd>
+      <dt>Experiment seed</dt>
+      <dd><code>42</code></dd>
+      <dt>Panel</dt>
+      <dd>48 SKUs × 53 periods · test from period 39</dd>
+      <dt>Outputs</dt>
+      <dd>Built from <code>outputs/kpi_comparison.csv</code>, <code>outputs/sensitivity_naive_forecast.csv</code>, <code>outputs/run_manifest.json</code>, <code>config/*.yaml</code></dd>
+    </dl>
+  </header>
+
+  <section>
+    <h2><span class="num">0.</span> Executive summary</h2>
+    <div class="exec-summary">
+      <p><strong>Purpose.</strong> Satisfy engineering review-style documentation: problem, stakeholders, requirements with traceability, architecture, detailed design (data, forecasts, LP, simulation), results, sensitivity, risks, and reproducibility.</p>
+      <p><strong>Outcomes (this build).</strong></p>
+      <ul>
+        
+        <li>Realized total cost is lower for naive (3,271,715) and ML (3,274,648) than for the perfect-foresight LP plan (3,328,858), about -1.7% and -1.6% vs oracle. The LP objective omits per-order fixed costs; the simulator adds them, so ranking by realized KPIs need not match the LP optimum.</li>
+        
+        <li>Realized fill rate can sit far below the nominal LP service target because the aggregate fill constraint binds on planning demand (forecast or truth in the LP), not on realized demand.</li>
+        
+        <li>Stress multipliers on true demand move total cost and fill rate without re-fitting forecasts, illustrating sensitivity of a fixed plan under scale misspecification.</li>
+        
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">1.</span> Problem definition, scope, and need</h2>
+    <p>Retail and distribution systems must place replenishment orders before demand is realized. Decisions are informed by forecasts, yet performance is judged on outcomes under true demand. This report documents a decomposed system: forecasting, linear optimization with service and capacity constraints, and ex-post simulation for realized cost and fill.</p>
+    <p>The need is traceable evidence of how forecast-driven plans behave relative to a perfect-foresight benchmark, including sensitivity to demand scale, under explicit unit economics and capacity limits.</p>
+    <h3>System boundary</h3>
+    <ul>
+      
+      <li>Single echelon: one planning pool with a shared per-period order capacity (no multi-node network).</li>
+      
+      <li>Continuous order quantities in the LP; no lot sizing or lead-time delays beyond the period index.</li>
+      
+      <li>Point forecasts only; no joint demand distribution in the optimization layer.</li>
+      
+      <li>Implementation lives in `optimization_ml_hybrid_walkthrough.ipynb`; config in `config/*.yaml`.</li>
+      
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">2.</span> Stakeholders and operational context</h2>
+    <p>Actors: a planner chooses periodic replenishment orders subject to a warehouse capacity. Customers draw true demand; the planner only sees history when fitting forecasts. Feedback is monetary: holding, variable ordering, fixed ordering (in simulation), and stockouts.</p>
+    <table>
+      <thead>
+        <tr><th>Stakeholder / role</th><th>Need</th></tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>Planner / operations</td>
+          <td>Periodic replenishment under warehouse capacity; minimize holding, variable ordering, and shortage costs in the LP; evaluate with full cost stack in simulation.</td>
+        </tr>
+        
+        <tr>
+          <td>Service policy owner</td>
+          <td>Aggregate fill target on planning demand at least 95% (configurable τ).</td>
+        </tr>
+        
+        <tr>
+          <td>Analysis and audit</td>
+          <td>Documented LP, open-source CBC solver, single-notebook implementation for traceability.</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">3.</span> Requirements, parameters, and traceability</h2>
+    <h3>Functional and non-functional requirements</h3>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Requirement</th><th>Verification</th></tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>FR-1</strong></td>
+          <td>Multi-SKU, multi-period inventory balance with nonnegative orders, inventory, and shortages.</td>
+          <td>Notebook `solve_inventory_lp` balance rows</td>
+        </tr>
+        
+        <tr>
+          <td><strong>FR-2</strong></td>
+          <td>Minimum aggregate fill on planning demand: total shortage ≤ (1−τ) × total planning demand, τ = 95%.</td>
+          <td>LP aggregate shortage constraint</td>
+        </tr>
+        
+        <tr>
+          <td><strong>FR-3</strong></td>
+          <td>Total order quantity per period ≤ 800 units (all SKUs combined).</td>
+          <td>LP capacity constraint per t</td>
+        </tr>
+        
+        <tr>
+          <td><strong>NFR-1</strong></td>
+          <td>No commercial solver dependency.</td>
+          <td>PuLP + CBC</td>
+        </tr>
+        
+      </tbody>
+    </table>
+    <h3>Traceability (requirement to design artifact)</h3>
+    <table>
+      <thead>
+        <tr><th>Requirement</th><th>Design element in implementation</th></tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>FR-1</td>
+          <td>`solve_inventory_lp`: per (t,s) balance I_end = I_prev + x − d_plan + u; u ≤ d_plan.</td>
+        </tr>
+        
+        <tr>
+          <td>FR-2</td>
+          <td>Single row: Σ u ≤ (1−0.95) × Σ d_plan over test horizon.</td>
+        </tr>
+        
+        <tr>
+          <td>FR-3</td>
+          <td>Per period: Σ_s x[t,s] ≤ order_capacity_per_period.</td>
+        </tr>
+        
+        <tr>
+          <td>NFR-1</td>
+          <td>`pl.PULP_CBC_CMD` in notebook.</td>
+        </tr>
+        
+      </tbody>
+    </table>
+    <h3>Economic and capacity parameters</h3>
+    <p>Loaded from <code>config/costs.yaml</code> and passed into both the LP and the rolling simulation.</p>
+    <table>
+      <thead>
+        <tr><th>Parameter</th><th>Value</th></tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><code>holding_per_unit_period</code></td>
+          <td>0.25</td>
+        </tr>
+        
+        <tr>
+          <td><code>ordering_variable_per_unit</code></td>
+          <td>1.0</td>
+        </tr>
+        
+        <tr>
+          <td><code>ordering_fixed_per_order</code></td>
+          <td>15.0</td>
+        </tr>
+        
+        <tr>
+          <td><code>stockout_penalty_per_unit</code></td>
+          <td>8.0</td>
+        </tr>
+        
+        <tr>
+          <td><code>order_capacity_per_period</code></td>
+          <td>800</td>
+        </tr>
+        
+        <tr>
+          <td><code>initial_inventory</code></td>
+          <td>5.0</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">4.</span> System architecture and information flow</h2>
+    <p>The system is decomposed into three subsystems. Information flows one way into the LP at decision time; truth enters only in the evaluation module (or inside the LP for the oracle benchmark).</p>
+    <table>
+      <thead>
+        <tr><th>Subsystem</th><th>Function</th></tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>Prediction</strong></td>
+          <td>Seasonal naive and lag-feature gradient boosting produce test-horizon planning demand matrices.</td>
+        </tr>
+        
+        <tr>
+          <td><strong>Optimization</strong></td>
+          <td>A multi-SKU LP minimizes holding plus variable ordering plus shortage penalties with aggregate fill and per-period capacity.</td>
+        </tr>
+        
+        <tr>
+          <td><strong>Evaluation</strong></td>
+          <td>Oracle uses truth in the LP; forecast scenarios use d_hat in the LP, then simulate realized cost and fill under true demand with fixed orders.</td>
+        </tr>
+        
+      </tbody>
+    </table>
+    <h3>Information and decision flow</h3>
+    <p>The planner never observes future true demand when choosing orders; the evaluation module observes truth only after plans are fixed.</p>
+    <pre class="flow">  Training-period demand history
+           │
+           ▼
+  ┌────────────────────┐      planning demand d_plan
+  │ Forecast subsystem │  (d_hat from naive or ML, or d_true for oracle)
+  └─────────┬──────────┘
+            │
+            ▼
+  ┌────────────────────┐      orders x[t,s] ≥ 0
+  │  LP (CBC)        │      min Σ (h·I + c_var·x + c_short·u)
+  │  min cost        │      s.t. balance, capacity, aggregate fill on d_plan
+  └─────────┬────────┘
+            │
+            ▼
+  ┌────────────────────┐      true demand d_true (test horizon)
+  │ Simulation / KPIs  │      realized cost (incl. fixed order cost), fill rate
+  └────────────────────┘</pre>
+  </section>
+
+  <section>
+    <h2><span class="num">5.</span> Design description</h2>
+
+    <h3>5.1 Data pipeline</h3>
+    <p>Real transaction data from the UCI Online Retail repository are downloaded once to `data/raw/`, read with `openpyxl`, filtered to positive quantities, and aggregated to calendar-week units sold per `StockCode`. The top SKUs by total volume are retained, weeks are sorted and indexed 0…T−1, and the panel is expressed in long form then pivoted to wide for modeling. Missing SKU-week pairs are treated as zero demand in the wide matrix.</p>
+
+    <h3>5.2 Forecasting layer</h3>
+    <p>Both methods produce a nonnegative matrix <code>d_hat</code> of the same shape as planning demand on the test horizon.</p>
+    <ul>
+      
+      <li>**Seasonal naive:** for each SKU, demand at test period t is forecast using the same seasonal lag (e.g. week t−52) when available in training; otherwise the closest prior lag.</li>
+      
+      <li>**ML (HGB):** `HistGradientBoostingRegressor` on features including lags 1, 2, 7, 14 and an encoded SKU index; trained on training periods only; recursive one-step predictions over the test window.</li>
+      
+    </ul>
+
+    <h3>5.3 Optimization layer (linear program)</h3>
+    <p>The optimization layer is a linear program over the test horizon indices present in the planning demand matrix. Indices t and s refer to period and SKU; d_plan[t,s] is the planning demand (forecast or truth).</p>
+    <table>
+      <thead>
+        <tr><th>Element</th><th>Specification (implementation)</th></tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>Decision variables</td>
+          <td>x[t,s] ≥ 0 order quantity; I_end[t,s] ≥ 0 end-of-period inventory; u[t,s] ≥ 0 shortage (unmet demand in the LP accounting).</td>
+        </tr>
+        
+        <tr>
+          <td>Objective</td>
+          <td>Minimize Σ_{t,s} ( h·I_end + c_var·x + c_short·u ) using `holding_per_unit_period`, `ordering_variable_per_unit`, `stockout_penalty_per_unit` from config.</td>
+        </tr>
+        
+        <tr>
+          <td>Inventory balance</td>
+          <td>I_end[t,s] = I_prev + x[t,s] − d_plan[t,s] + u[t,s]; first period uses `initial_inventory` per SKU.</td>
+        </tr>
+        
+        <tr>
+          <td>Local shortage bound</td>
+          <td>u[t,s] ≤ d_plan[t,s] for each (t,s).</td>
+        </tr>
+        
+        <tr>
+          <td>Order capacity</td>
+          <td>Σ_s x[t,s] ≤ order_capacity_per_period for each t.</td>
+        </tr>
+        
+        <tr>
+          <td>Aggregate service</td>
+          <td>Sum over all (t,s) of u ≤ (1−τ) × sum of d_plan with τ = 0.95 (minimum fill on planning demand).</td>
+        </tr>
+        
+      </tbody>
+    </table>
+    <p>The aggregate constraint limits total **planned** shortage relative to total **planning** demand. It does not bound realized shortage against true demand; hence realized fill rate in §6 can differ sharply from τ when d_plan and d_true disagree.</p>
+
+    <h3>5.4 Evaluation layer (simulation and metrics)</h3>
+    <p>Given fixed orders from the LP, the simulator steps through periods with <strong>true</strong> demand and accumulates costs. Fixed ordering cost per positive order is included here but not in the LP objective.</p>
+    <table>
+      <thead>
+        <tr><th>Metric</th><th>Definition</th></tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>Realized total cost</td>
+          <td>Roll forward with true demand: end-of-period holding at rate h, variable cost c_var per unit ordered, stockout penalty c_short per unmet unit, plus fixed cost 15.0 per (t,s) when x[t,s] > 0. Same orders as the LP output.</td>
+        </tr>
+        
+        <tr>
+          <td>Realized fill rate</td>
+          <td>(Total true demand − total unmet demand) / total true demand over the simulated horizon, with unmet demand computed period by period from inventory and orders.</td>
+        </tr>
+        
+      </tbody>
+    </table>
+
+    <h3>5.5 Methods snapshot (config echo)</h3>
+    <ul>
+      
+      <li>Data: UCI Online Retail (UK transactions), aggregated to weekly units per StockCode; top SKUs by volume, encoded as 48 SKUs × 53 weekly periods.</li>
+      
+      <li>Train fraction 75%; test horizon from period 39 onward.</li>
+      
+      <li>LP service target: minimum aggregate fill rate ≥ 95% on planning demand.</li>
+      
+      <li>Solver: PuLP with bundled CBC (no commercial licenses). Fixed ordering charged in simulation only.</li>
+      
+    </ul>
+    <div class="callout">
+      <strong>Predict-then-optimize interface risk.</strong> Plug-in forecasts optimize a statistical loss that need not align with ordering cost. A stronger forecast can lose to a naive one on realized inventory cost in finite samples.
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">6.</span> Analysis, results, and interpretation</h2>
+    <p>Orders are chosen by solving the LP on <em>planning</em> demand (forecast, or true demand for the oracle benchmark). The tables below report KPIs from simulation against <em>true</em> test demand.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th>Realized total cost</th>
+          <th>Realized fill rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>oracle_perfect_demand</td>
+          <td>3328858.25</td>
+          <td>0.0270</td>
+        </tr>
+        
+        <tr>
+          <td>naive_seasonal</td>
+          <td>3271715.00</td>
+          <td>0.0422</td>
+        </tr>
+        
+        <tr>
+          <td>ml_hgb_lags</td>
+          <td>3274647.89</td>
+          <td>0.0400</td>
+        </tr>
+        
+      </tbody>
+    </table>
+    <h3>Interpretation</h3>
+    <p>Numerical results: oracle realized cost 3,328,858.25 (fill 0.0270); naive 3,271,715.00 (-1.72% vs oracle, fill 0.0422); ML 3,274,647.89 (-1.63% vs oracle, fill 0.0400). Both forecast-driven plans achieve lower **simulated** total cost than the oracle in this build. Interpret this as an objective mismatch: the LP minimizes linear holding, variable ordering, and shortage costs without fixed ordering charges, while the simulator adds fixed costs per placement. The oracle LP is still optimal for its stated LP objective on planning demand; it is not guaranteed to minimize the simulator’s objective. Realized fill rates remain well below τ=95% because τ constrains the LP on planning demand, not on out-of-sample truth.</p>
+    
+    <figure>
+      <img src="cost_by_scenario.png" alt="Realized cost by scenario" />
+      <figcaption>Figure 1. Realized total cost by scenario (same run as table).</figcaption>
+    </figure>
+    
+  </section>
+
+  <section>
+    <h2><span class="num">7.</span> Sensitivity analysis</h2>
+    <p>A stress test scales **true** demand by a multiplier while holding the order plan from the naive forecast LP at multiplier 1.0. This isolates exposure to demand level misspecification without re-solving the optimization or re-estimating forecasts.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Demand multiplier</th>
+          <th>Realized total cost</th>
+          <th>Realized fill rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>0.9</td>
+          <td>2945405.70</td>
+          <td>0.0434</td>
+        </tr>
+        
+        <tr>
+          <td>1.0</td>
+          <td>3271715.00</td>
+          <td>0.0422</td>
+        </tr>
+        
+        <tr>
+          <td>1.1</td>
+          <td>3599179.23</td>
+          <td>0.0410</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">8.</span> Limitations and risk register</h2>
+    <p>The following items are limitations of the current model and study design, stated as risks with mitigations or research extensions.</p>
+    <table>
+      <thead>
+        <tr><th>Risk or limitation</th><th>Mitigation or extension</th></tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>LP omits binary fixed-order decisions; fixed costs appear only in simulation.</td>
+          <td>Compare KPIs under simulation consistently; consider MIP or fixed-cost proxies if decisions hinge on order counts.</td>
+        </tr>
+        
+        <tr>
+          <td>Single temporal train or test split.</td>
+          <td>Rolling-origin evaluation across multiple cutoffs; bootstrap by SKU where appropriate.</td>
+        </tr>
+        
+        <tr>
+          <td>Recursive point forecasts; no uncertainty sets in the LP.</td>
+          <td>Scenario trees, robust optimization, or chance constraints as follow-on work.</td>
+        </tr>
+        
+        <tr>
+          <td>Real data are aggregated and cleaned; not a live retailer feed.</td>
+          <td>Treat as illustrative; validate on domain-specific data before operational use.</td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">9.</span> Conclusions and recommendations</h2>
+    <p>The documented system separates forecasting, LP-based planning, and simulation-based evaluation. Under the committed parameters, realized cost and fill illustrate predict-then-optimize effects: planning service level does not translate directly to realized fill, and LP-optimal plans need not minimize simulated cost when the simulator adds cost terms absent from the LP.</p>
+    <p><strong>Recommendations.</strong></p>
+    <ul>
+      
+      <li>Align the optimization objective with the KPI simulator when fixed ordering drives behavior, or move fixed costs into the decision model.</li>
+      
+      <li>Separate forecast model selection from decision quality: use decision-aware losses or cost-weighted validation when the goal is cost minimization.</li>
+      
+      <li>Extend evaluation with multiple splits and, where data allow, hierarchical or stochastic demand models.</li>
+      
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">10.</span> Reproducibility</h2>
+    <p>Create a venv, <code>pip install -r requirements.txt</code>, run all cells in <code>optimization_ml_hybrid_walkthrough.ipynb</code>, then run this script. Figures and CSVs under <code>outputs/</code> must exist for a full regeneration.</p>
+  </section>
+
+  <p class="footer-note">
+    Engineering Systems Design Report · Predict-then-optimize for multi-SKU inventory · Generated 2026-04-05 08:55 UTC.
+    Educational and methods communication artifact; not a substitute for production planning systems.
+  </p>
+</body>
+</html>

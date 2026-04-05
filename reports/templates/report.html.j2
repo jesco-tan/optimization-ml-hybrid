@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ report_title }} | Engineering Systems Design Report</title>
+  <style>
+    :root {
+      --ink: #1c1c1c;
+      --muted: #4a4a4a;
+      --rule: #333;
+      --border: #c8c8c8;
+      --table-head: #e8e8e8;
+      --accent: #1a365d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Georgia", "Times New Roman", serif;
+      font-size: 11pt;
+      line-height: 1.52;
+      color: var(--ink);
+      max-width: 50rem;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+      background: #fff;
+    }
+    .cover {
+      border: 2px solid var(--rule);
+      padding: 1.75rem 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+    .cover-label {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0 0 0.5rem;
+    }
+    .cover h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem;
+      line-height: 1.25;
+      color: var(--accent);
+    }
+    .cover .tagline {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin: 0 0 1.25rem;
+    }
+    .meta-grid {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.8rem;
+      display: grid;
+      grid-template-columns: 9rem 1fr;
+      gap: 0.35rem 1rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+    }
+    .meta-grid dt { color: var(--muted); margin: 0; }
+    .meta-grid dd { margin: 0; }
+
+    h2 {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 1.08rem;
+      font-weight: 650;
+      color: var(--accent);
+      margin: 2.25rem 0 0.75rem;
+      padding-bottom: 0.25rem;
+      border-bottom: 2px solid var(--rule);
+    }
+    h2 .num { color: var(--muted); font-weight: 600; margin-right: 0.35rem; }
+
+    h3 {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.93rem;
+      font-weight: 600;
+      margin: 1.35rem 0 0.5rem;
+      color: var(--ink);
+    }
+
+    p { margin: 0.5rem 0; text-align: justify; hyphens: auto; }
+    ul { margin: 0.4rem 0 0.6rem 1.2rem; }
+    li { margin: 0.28rem 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.81rem;
+      margin: 0.55rem 0 1rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.45rem 0.55rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--table-head); font-weight: 600; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    .exec-summary {
+      background: #f6f8fa;
+      border-left: 4px solid var(--accent);
+      padding: 0.95rem 1.05rem;
+      margin: 1rem 0 1.25rem;
+      font-size: 0.95rem;
+    }
+    .exec-summary ul { margin: 0.5rem 0 0 1rem; }
+
+    pre.flow {
+      font-family: "Consolas", "Monaco", monospace;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      background: #f4f4f4;
+      border: 1px solid var(--border);
+      padding: 0.85rem 1rem;
+      overflow-x: auto;
+      margin: 0.75rem 0 1rem;
+    }
+
+    figure { margin: 1rem 0; text-align: center; }
+    figcaption {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+    }
+    img { max-width: 100%; height: auto; border: 1px solid var(--border); }
+
+    .callout {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.88rem;
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      margin: 1rem 0;
+      background: #fafafa;
+    }
+
+    .footer-note {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 2.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    code { font-size: 0.9em; background: #eee; padding: 0.08em 0.3em; }
+  </style>
+</head>
+<body>
+
+  <header class="cover">
+    <p class="cover-label">{{ document_label }}</p>
+    <h1>{{ report_title }}</h1>
+    <p class="tagline">{{ subtitle }}</p>
+    <dl class="meta-grid">
+      <dt>Revision</dt>
+      <dd>{{ generated_at }}</dd>
+      <dt>Data source</dt>
+      <dd>{{ data_source_label }}</dd>
+      <dt>Experiment seed</dt>
+      <dd><code>{{ seed }}</code></dd>
+      <dt>Panel</dt>
+      <dd>{{ n_skus }} SKUs × {{ n_periods }} periods · test from period {{ cutoff }}</dd>
+      <dt>Outputs</dt>
+      <dd>Built from <code>outputs/kpi_comparison.csv</code>, <code>outputs/sensitivity_naive_forecast.csv</code>, <code>outputs/run_manifest.json</code>, <code>config/*.yaml</code></dd>
+    </dl>
+  </header>
+
+  <section>
+    <h2><span class="num">0.</span> Executive summary</h2>
+    <div class="exec-summary">
+      <p><strong>Purpose.</strong> {{ exec_purpose }}</p>
+      <p><strong>Outcomes (this build).</strong></p>
+      <ul>
+        {% for b in executive_bullets %}
+        <li>{{ b }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">1.</span> Problem definition, scope, and need</h2>
+    <p>{{ problem_statement }}</p>
+    <p>{{ need_statement }}</p>
+    <h3>System boundary</h3>
+    <ul>
+      {% for s in scope_lines %}
+      <li>{{ s }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">2.</span> Stakeholders and operational context</h2>
+    <p>{{ system_framing }}</p>
+    <table>
+      <thead>
+        <tr><th>Stakeholder / role</th><th>Need</th></tr>
+      </thead>
+      <tbody>
+        {% for row in stakeholder_rows %}
+        <tr>
+          <td>{{ row.stakeholder }}</td>
+          <td>{{ row.need }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">3.</span> Requirements, parameters, and traceability</h2>
+    <h3>Functional and non-functional requirements</h3>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Requirement</th><th>Verification</th></tr>
+      </thead>
+      <tbody>
+        {% for row in requirement_rows %}
+        <tr>
+          <td><strong>{{ row.id }}</strong></td>
+          <td>{{ row.requirement }}</td>
+          <td>{{ row.metric }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <h3>Traceability (requirement to design artifact)</h3>
+    <table>
+      <thead>
+        <tr><th>Requirement</th><th>Design element in implementation</th></tr>
+      </thead>
+      <tbody>
+        {% for row in traceability_rows %}
+        <tr>
+          <td>{{ row.req }}</td>
+          <td>{{ row.artifact }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <h3>Economic and capacity parameters</h3>
+    <p>Loaded from <code>config/costs.yaml</code> and passed into both the LP and the rolling simulation.</p>
+    <table>
+      <thead>
+        <tr><th>Parameter</th><th>Value</th></tr>
+      </thead>
+      <tbody>
+        {% for row in cost_rows %}
+        <tr>
+          <td><code>{{ row.parameter }}</code></td>
+          <td>{{ row.value }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">4.</span> System architecture and information flow</h2>
+    <p>{{ architecture_intro }}</p>
+    <table>
+      <thead>
+        <tr><th>Subsystem</th><th>Function</th></tr>
+      </thead>
+      <tbody>
+        {% for row in system_rows %}
+        <tr>
+          <td><strong>{{ row.layer }}</strong></td>
+          <td>{{ row.description }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <h3>Information and decision flow</h3>
+    <p>The planner never observes future true demand when choosing orders; the evaluation module observes truth only after plans are fixed.</p>
+    <pre class="flow">{{ information_flow_diagram }}</pre>
+  </section>
+
+  <section>
+    <h2><span class="num">5.</span> Design description</h2>
+
+    <h3>5.1 Data pipeline</h3>
+    <p>{{ data_pipeline_paragraph }}</p>
+
+    <h3>5.2 Forecasting layer</h3>
+    <p>Both methods produce a nonnegative matrix <code>d_hat</code> of the same shape as planning demand on the test horizon.</p>
+    <ul>
+      {% for line in forecast_detail_lines %}
+      <li>{{ line }}</li>
+      {% endfor %}
+    </ul>
+
+    <h3>5.3 Optimization layer (linear program)</h3>
+    <p>{{ lp_intro }}</p>
+    <table>
+      <thead>
+        <tr><th>Element</th><th>Specification (implementation)</th></tr>
+      </thead>
+      <tbody>
+        {% for row in lp_rows %}
+        <tr>
+          <td>{{ row.element }}</td>
+          <td>{{ row.spec }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p>{{ lp_aggregate_fill }}</p>
+
+    <h3>5.4 Evaluation layer (simulation and metrics)</h3>
+    <p>Given fixed orders from the LP, the simulator steps through periods with <strong>true</strong> demand and accumulates costs. Fixed ordering cost per positive order is included here but not in the LP objective.</p>
+    <table>
+      <thead>
+        <tr><th>Metric</th><th>Definition</th></tr>
+      </thead>
+      <tbody>
+        {% for row in simulation_metric_rows %}
+        <tr>
+          <td>{{ row.metric }}</td>
+          <td>{{ row.definition }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h3>5.5 Methods snapshot (config echo)</h3>
+    <ul>
+      {% for m in methods_lines %}
+      <li>{{ m }}</li>
+      {% endfor %}
+    </ul>
+    <div class="callout">
+      <strong>Predict-then-optimize interface risk.</strong> {{ pto_caveat }}
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="num">6.</span> Analysis, results, and interpretation</h2>
+    <p>Orders are chosen by solving the LP on <em>planning</em> demand (forecast, or true demand for the oracle benchmark). The tables below report KPIs from simulation against <em>true</em> test demand.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Scenario</th>
+          <th>Realized total cost</th>
+          <th>Realized fill rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in kpi_rows %}
+        <tr>
+          <td>{{ row.scenario }}</td>
+          <td>{{ "%.2f"|format(row.total_cost) }}</td>
+          <td>{{ "%.4f"|format(row.fill_rate) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <h3>Interpretation</h3>
+    <p>{{ results_interpretation }}</p>
+    {% if figure_rel %}
+    <figure>
+      <img src="{{ figure_rel }}" alt="Realized cost by scenario" />
+      <figcaption>Figure 1. Realized total cost by scenario (same run as table).</figcaption>
+    </figure>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2><span class="num">7.</span> Sensitivity analysis</h2>
+    <p>{{ sensitivity_intro }}</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Demand multiplier</th>
+          <th>Realized total cost</th>
+          <th>Realized fill rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in sensitivity_rows %}
+        <tr>
+          <td>{{ row.multiplier }}</td>
+          <td>{{ "%.2f"|format(row.total_cost) }}</td>
+          <td>{{ "%.4f"|format(row.fill_rate) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">8.</span> Limitations and risk register</h2>
+    <p>{{ limitations_intro }}</p>
+    <table>
+      <thead>
+        <tr><th>Risk or limitation</th><th>Mitigation or extension</th></tr>
+      </thead>
+      <tbody>
+        {% for row in risk_rows %}
+        <tr>
+          <td>{{ row.risk }}</td>
+          <td>{{ row.mitigation }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="num">9.</span> Conclusions and recommendations</h2>
+    <p>{{ conclusions }}</p>
+    <p><strong>Recommendations.</strong></p>
+    <ul>
+      {% for r in recommendation_lines %}
+      <li>{{ r }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="num">10.</span> Reproducibility</h2>
+    <p>{{ reproducibility }}</p>
+  </section>
+
+  <p class="footer-note">
+    {{ document_label }} · {{ report_title }} · Generated {{ generated_at }}.
+    Educational and methods communication artifact; not a substitute for production planning systems.
+  </p>
+</body>
+</html>

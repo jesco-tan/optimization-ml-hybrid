@@ -1,0 +1,9 @@
+# Unit economics for multi-period inventory (toy but explicit).
+holding_per_unit_period: 0.25
+ordering_variable_per_unit: 1.0
+ordering_fixed_per_order: 15.0
+stockout_penalty_per_unit: 8.0
+# Warehouse capacity: max total units ordered per period (all SKUs).
+order_capacity_per_period: 800
+# Initial inventory per SKU (same for all SKUs unless overridden in code).
+initial_inventory: 5.0

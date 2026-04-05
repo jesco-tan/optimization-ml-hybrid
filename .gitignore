@@ -1,0 +1,27 @@
+# Virtual environments
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local env and secrets
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Downloaded data (UCI Excel, etc.); keep outputs/ for frozen demo artifacts
+data/raw/

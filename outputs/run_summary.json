@@ -1,0 +1,72 @@
+{
+  "project": "optimization-ml-hybrid",
+  "generated_at": "2026-04-05 08:55 UTC",
+  "experiment": {
+    "random_seed": 42,
+    "data_source": "uci_online_retail",
+    "n_skus": 48,
+    "n_periods": 104,
+    "uci_online_retail_url": "https://archive.ics.uci.edu/ml/machine-learning-databases/00352/Online%20Retail.xlsx",
+    "uci_top_n_skus": 48,
+    "uci_min_distinct_weeks": 40,
+    "train_period_fraction": 0.75,
+    "min_fill_rate": 0.95,
+    "stress_multipliers": [
+      0.9,
+      1.0,
+      1.1
+    ]
+  },
+  "costs_keys": [
+    "holding_per_unit_period",
+    "ordering_variable_per_unit",
+    "ordering_fixed_per_order",
+    "stockout_penalty_per_unit",
+    "order_capacity_per_period",
+    "initial_inventory"
+  ],
+  "kpi_comparison": [
+    {
+      "scenario": "oracle_perfect_demand",
+      "total_cost": 3328858.25,
+      "fill_rate": 0.0269911264312493
+    },
+    {
+      "scenario": "naive_seasonal",
+      "total_cost": 3271715.0,
+      "fill_rate": 0.0422255410611948
+    },
+    {
+      "scenario": "ml_hgb_lags",
+      "total_cost": 3274647.885764,
+      "fill_rate": 0.0400039131305695
+    }
+  ],
+  "sensitivity_naive_forecast": [
+    {
+      "multiplier": 0.9,
+      "total_cost": 2945405.6999999997,
+      "fill_rate": 0.0433556765122939
+    },
+    {
+      "multiplier": 1.0,
+      "total_cost": 3271715.0,
+      "fill_rate": 0.0422255410611948
+    },
+    {
+      "multiplier": 1.1,
+      "total_cost": 3599179.225,
+      "fill_rate": 0.0410471458878531
+    }
+  ],
+  "manifest": {
+    "n_skus": 48,
+    "n_periods": 53,
+    "cutoff": 39,
+    "data_source": "uci_online_retail"
+  },
+  "gaps_vs_oracle_pct": {
+    "naive": -1.717,
+    "ml": -1.628
+  }
+}

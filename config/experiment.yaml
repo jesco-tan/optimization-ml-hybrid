@@ -1,0 +1,17 @@
+random_seed: 42
+# data_source: synthetic | uci_online_retail
+data_source: uci_online_retail
+
+# Synthetic path (used when data_source is synthetic)
+n_skus: 48
+n_periods: 104
+
+# UCI Online Retail (used when data_source is uci_online_retail)
+# Source: UCI ML Repository — real UK transactions; we aggregate to weekly units sold per item.
+uci_online_retail_url: "https://archive.ics.uci.edu/ml/machine-learning-databases/00352/Online%20Retail.xlsx"
+uci_top_n_skus: 48
+uci_min_distinct_weeks: 40
+
+train_period_fraction: 0.75
+min_fill_rate: 0.95
+stress_multipliers: [0.9, 1.0, 1.1]
