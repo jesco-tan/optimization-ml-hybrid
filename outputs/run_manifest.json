@@ -2,5 +2,8 @@
   "n_skus": 48,
   "n_periods": 53,
   "cutoff": 39,
-  "data_source": "uci_online_retail"
+  "data_source": "uci_online_retail",
+  "planning_mode": "batch",
+  "rolling_horizon_periods": 13,
+  "forecast_suite": "all"
 }

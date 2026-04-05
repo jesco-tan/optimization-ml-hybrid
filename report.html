@@ -129,6 +129,17 @@
     }
     img { max-width: 100%; height: auto; border: 1px solid var(--border); }
 
+    p.figure-analysis {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.86rem;
+      line-height: 1.45;
+      color: var(--muted);
+      text-align: left;
+      hyphens: none;
+      margin: 0.35rem 0 1.15rem;
+      padding: 0 0.15rem;
+    }
+
     .callout {
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
       font-size: 0.88rem;
@@ -157,7 +168,7 @@
     <p class="tagline">Predict-then-optimize inventory pipeline · UCI Online Retail weekly panel · realized KPIs under true demand</p>
     <dl class="meta-grid">
       <dt>Revision</dt>
-      <dd>2026-04-05 08:55 UTC</dd>
+      <dd>2026-04-05 10:48 UTC</dd>
       <dt>Data source</dt>
       <dd>UCI Online Retail (weekly aggregate)</dd>
       <dt>Experiment seed</dt>
@@ -399,6 +410,10 @@
       
       <li>**ML (HGB):** `HistGradientBoostingRegressor` on features including lags 1, 2, 7, 14 and an encoded SKU index; trained on training periods only; recursive one-step predictions over the test window.</li>
       
+      <li>**Last value:** forecast at t equals realized demand at t−1 from the historical series.</li>
+      
+      <li>**Rolling mean:** mean of the last K periods strictly before t (K from config `rolling_mean_window`).</li>
+      
     </ul>
 
     <h3>5.3 Optimization layer (linear program)</h3>
@@ -512,6 +527,18 @@
           <td>0.0400</td>
         </tr>
         
+        <tr>
+          <td>last_value</td>
+          <td>3340406.00</td>
+          <td>0.0264</td>
+        </tr>
+        
+        <tr>
+          <td>rolling_mean</td>
+          <td>3344529.66</td>
+          <td>0.0158</td>
+        </tr>
+        
       </tbody>
     </table>
     <h3>Interpretation</h3>
@@ -521,6 +548,21 @@
       <img src="outputs/cost_by_scenario.png" alt="Realized cost by scenario" />
       <figcaption>Figure 1. Realized total cost by scenario (same run as table).</figcaption>
     </figure>
+    <p class="figure-analysis">Bars compare scenarios on realized total cost after simulating LP orders under true demand. Read alongside the KPI table: bar height encodes the simulator objective (holding, variable and fixed ordering, stockouts), which can diverge from LP-only optimality when fixed costs appear only in simulation.</p>
+    
+    
+    <figure>
+      <img src="outputs/decision_regret_vs_oracle.png" alt="Regret vs oracle on realized cost" />
+      <figcaption>Figure 2. Regret on realized total cost vs oracle benchmark (non-oracle scenarios).</figcaption>
+    </figure>
+    <p class="figure-analysis">Regret is (realized cost minus oracle realized cost) divided by oracle cost, in percent. Negative bars mean the forecast-driven plan beat the oracle on this simulator in this split (often due to objective mismatch); positive bars mean higher realized cost than the perfect-foresight LP plan.</p>
+    
+    
+    <figure>
+      <img src="outputs/forecast_error_mae_rmse.png" alt="MAE and RMSE by scenario" />
+      <figcaption>Figure 3. Point forecast error vs truth on the test window (MAE and RMSE).</figcaption>
+    </figure>
+    <p class="figure-analysis">MAE and RMSE aggregate point forecast error versus true test demand (as defined in the notebook). Lower statistical error does not guarantee lower regret: ML can show better RMSE than naive yet similar or worse realized cost, which is the predict-then-optimize gap this study highlights.</p>
     
   </section>
 
@@ -557,6 +599,13 @@
         
       </tbody>
     </table>
+    
+    <figure>
+      <img src="outputs/sensitivity_naive_cost.png" alt="Sensitivity: cost and fill vs demand multiplier" />
+      <figcaption>Figure 4. Stress test: fixed naive-based plan; true demand scaled (cost and realized fill).</figcaption>
+    </figure>
+    <p class="figure-analysis">The dual-axis chart matches the stress table: from multiplier 0.9 to 1.1, realized total cost moves from about 2,945,406 to 3,599,179 with the same naive-based order plan. The right axis shows realized fill versus demand scale; forecasts and the LP are not re-run when the multiplier changes.</p>
+    
   </section>
 
   <section>
@@ -609,11 +658,11 @@
 
   <section>
     <h2><span class="num">10.</span> Reproducibility</h2>
-    <p>Create a venv, <code>pip install -r requirements.txt</code>, run all cells in <code>optimization_ml_hybrid_walkthrough.ipynb</code>, then run this script. Figures and CSVs under <code>outputs/</code> must exist for a full regeneration.</p>
+    <p>Create a venv, <code>pip install -r requirements.txt</code>, run all cells in <code>optimization_ml_hybrid_walkthrough.ipynb</code> through Section 9. Figures and CSVs under <code>outputs/</code> must exist for a full regeneration.</p>
   </section>
 
   <p class="footer-note">
-    Engineering Systems Design Report · Predict-then-optimize for multi-SKU inventory · Generated 2026-04-05 08:55 UTC.
+    Engineering Systems Design Report · Predict-then-optimize for multi-SKU inventory · Generated 2026-04-05 10:48 UTC.
     Educational and methods communication artifact; not a substitute for production planning systems.
   </p>
 </body>

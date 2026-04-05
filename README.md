@@ -9,7 +9,7 @@ Predict-then-optimize study: **forecasts feed a constrained inventory LP**, then
 Supporting pieces (not duplicate logic):
 
 - `config/*.yaml`: costs and experiment knobs the notebook reads.
-- `scripts/generate_report.py`: builds **`report.html`** (Engineering Systems Design style: requirements, traceability, LP design, risk register) and `outputs/run_summary.json` from CSVs the notebook writes.
+- **`report.html`** and **`outputs/run_summary.json`** are generated inside **`optimization_ml_hybrid_walkthrough.ipynb`** (Section 9) from CSVs written in Section 7, using Jinja templates under `reports/templates/`.
 
 ## Documentation (pick your format)
 
@@ -21,13 +21,36 @@ Supporting pieces (not duplicate logic):
 | **[outputs/run_summary.json](outputs/run_summary.json)** | Machine-readable KPIs. |
 | **`optimization_ml_hybrid_walkthrough.ipynb`** | **Run this** for the full pipeline. |
 
-After changing config or re-running the notebook:
+### Figures and outputs on GitHub
 
-```text
-python scripts/generate_report.py
-```
+These paths are meant to stay **committed** so anyone browsing the repo on GitHub can open tables, JSON, HTML, and the main chart without cloning first:
 
-Commit updated `outputs/*` and `report.html` when you want a frozen snapshot for visitors.
+| Path | What it is |
+|------|------------|
+| [`outputs/cost_by_scenario.png`](outputs/cost_by_scenario.png) | Bar chart of realized total cost by scenario (same plot Section 7 writes). |
+| [`outputs/decision_regret_vs_oracle.png`](outputs/decision_regret_vs_oracle.png) | Regret vs oracle benchmark on realized total cost (%), forecast scenarios only. |
+| [`outputs/forecast_error_mae_rmse.png`](outputs/forecast_error_mae_rmse.png) | MAE and RMSE vs truth on the test window, by scenario. |
+| [`outputs/sensitivity_naive_cost.png`](outputs/sensitivity_naive_cost.png) | Stress sweep: cost and fill vs demand multiplier (naive plan fixed). |
+| [`outputs/kpi_comparison.csv`](outputs/kpi_comparison.csv) | KPI table behind the figure. |
+| [`outputs/decision_metrics.csv`](outputs/decision_metrics.csv) | Forecast error (MAE/RMSE) and regret vs oracle. |
+| [`outputs/sensitivity_naive_forecast.csv`](outputs/sensitivity_naive_forecast.csv) | Stress sweep on naive-based plan. |
+| [`outputs/run_manifest.json`](outputs/run_manifest.json) | Run metadata (SKUs, periods, cutoff, `planning_mode`, etc.). |
+| [`outputs/run_summary.json`](outputs/run_summary.json) | Machine-readable rollup including `kpi_comparison`. |
+| [`outputs/report.html`](outputs/report.html) | ESD-style HTML (PNG paths relative to `outputs/`). |
+| [`report.html`](report.html) | Same report from repo root (images use `outputs/…` paths). |
+
+**What each figure is for** (details in **`REPORT.md`** and in **`report.html`** Section 6–7):
+
+- **`cost_by_scenario.png`** — Ranks scenarios on realized simulator cost; read with the KPI table and the LP vs simulator caveat.
+- **`decision_regret_vs_oracle.png`** — Regret vs oracle (%); negative means beat oracle on this simulator in this split.
+- **`forecast_error_mae_rmse.png`** — Statistical forecast error; compare to regret: better RMSE does not guarantee lower cost.
+- **`sensitivity_naive_cost.png`** — Fixed naive plan, scaled true demand; cost and fill vs multiplier without re-optimization.
+
+**Preview on the repo home page:**
+
+![Realized total cost by scenario (test horizon, true demand)](outputs/cost_by_scenario.png)
+
+After changing config or re-running the notebook, **Run All** through Section 9 (or set `export_html: false` in `config/experiment.yaml` to skip HTML in CI). Commit updated `outputs/*` (including the PNGs above), **`report.html`**, and root **`report.html`** when you want a frozen snapshot for visitors.
 
 ## How to run (local)
 
@@ -38,12 +61,6 @@ pip install -r requirements.txt
 ```
 
 Start Jupyter from the **repository root**, open **`optimization_ml_hybrid_walkthrough.ipynb`**, choose the `.venv` kernel, **Run All**.
-
-Optional: refresh HTML after a successful run:
-
-```text
-python scripts/generate_report.py
-```
 
 ## Tests
 

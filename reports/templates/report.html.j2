@@ -129,6 +129,17 @@
     }
     img { max-width: 100%; height: auto; border: 1px solid var(--border); }
 
+    p.figure-analysis {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      font-size: 0.86rem;
+      line-height: 1.45;
+      color: var(--muted);
+      text-align: left;
+      hyphens: none;
+      margin: 0.35rem 0 1.15rem;
+      padding: 0 0.15rem;
+    }
+
     .callout {
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
       font-size: 0.88rem;
@@ -367,6 +378,21 @@
       <img src="{{ figure_rel }}" alt="Realized cost by scenario" />
       <figcaption>Figure 1. Realized total cost by scenario (same run as table).</figcaption>
     </figure>
+    {% if figure_cost_analysis %}<p class="figure-analysis">{{ figure_cost_analysis }}</p>{% endif %}
+    {% endif %}
+    {% if figure_regret_rel %}
+    <figure>
+      <img src="{{ figure_regret_rel }}" alt="Regret vs oracle on realized cost" />
+      <figcaption>Figure 2. Regret on realized total cost vs oracle benchmark (non-oracle scenarios).</figcaption>
+    </figure>
+    {% if figure_regret_analysis %}<p class="figure-analysis">{{ figure_regret_analysis }}</p>{% endif %}
+    {% endif %}
+    {% if figure_forecast_err_rel %}
+    <figure>
+      <img src="{{ figure_forecast_err_rel }}" alt="MAE and RMSE by scenario" />
+      <figcaption>Figure 3. Point forecast error vs truth on the test window (MAE and RMSE).</figcaption>
+    </figure>
+    {% if figure_forecast_err_analysis %}<p class="figure-analysis">{{ figure_forecast_err_analysis }}</p>{% endif %}
     {% endif %}
   </section>
 
@@ -391,6 +417,13 @@
         {% endfor %}
       </tbody>
     </table>
+    {% if figure_stress_rel %}
+    <figure>
+      <img src="{{ figure_stress_rel }}" alt="Sensitivity: cost and fill vs demand multiplier" />
+      <figcaption>Figure 4. Stress test: fixed naive-based plan; true demand scaled (cost and realized fill).</figcaption>
+    </figure>
+    {% if figure_sensitivity_analysis %}<p class="figure-analysis">{{ figure_sensitivity_analysis }}</p>{% endif %}
+    {% endif %}
   </section>
 
   <section>

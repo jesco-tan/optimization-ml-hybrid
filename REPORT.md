@@ -1,6 +1,6 @@
 # Engineering Systems Design Report: Predict-then-optimize for multi-SKU inventory
 
-This file is the **Markdown twin** of **`report.html`** / **`outputs/report.html`**. Read it here if you do not want to open HTML. Numbers in §6 and §7 match the **committed** `outputs/*.csv` at the time of writing; re-run the notebook and `python scripts/generate_report.py` to refresh HTML, JSON, and then update this file if you need parity after a new run.
+This file is the **Markdown twin** of **`report.html`** / **`outputs/report.html`**. Read it here if you do not want to open HTML. Numbers in §6 and §7 match the **committed** `outputs/*.csv` at the time of writing; re-run the walkthrough notebook through **Section 9** (with `export_html: true` in `config/experiment.yaml`) to refresh HTML and JSON, then update this file if you need parity after a new run.
 
 **Document metadata (committed snapshot)**
 
@@ -10,7 +10,7 @@ This file is the **Markdown twin** of **`report.html`** / **`outputs/report.html
 | Experiment seed | `42` (`config/experiment.yaml`) |
 | Panel | 48 SKUs × 53 weekly periods · test from period **39** |
 | Service target τ | 95% aggregate fill on **planning** demand (`min_fill_rate`) |
-| Artifacts | `outputs/kpi_comparison.csv`, `outputs/sensitivity_naive_forecast.csv`, `outputs/run_manifest.json`, `config/*.yaml` |
+| Artifacts | Tables: `outputs/kpi_comparison.csv`, `outputs/decision_metrics.csv`, `outputs/sensitivity_naive_forecast.csv`; figures: four PNGs in §6–§7; `outputs/run_manifest.json`, `config/*.yaml` |
 
 ---
 
@@ -18,11 +18,11 @@ This file is the **Markdown twin** of **`report.html`** / **`outputs/report.html
 
 **Purpose.** Satisfy engineering-style documentation: problem, stakeholders, requirements with traceability, architecture, detailed design (data, forecasts, LP, simulation), results, sensitivity, risks, and reproducibility.
 
-**Outcomes (this build, seed 42, UCI Online Retail).**
+**Outcomes (this build, seed 42, UCI Online Retail, `planning_mode: batch`, `forecast_suite: all`).**
 
-- Realized total cost is **lower** for naive (3,271,715) and ML (3,274,648) than for the perfect-foresight LP plan (3,328,858), about **−1.7%** vs oracle on both forecasts. The LP objective omits per-order fixed costs; the simulator adds them, so ranking by realized KPIs need not match the LP optimum.
+- Oracle perfect-foresight LP realized cost **3,328,858**; **naive** and **ML** remain below oracle (about **−1.72%** and **−1.63%** vs oracle). **Last value** and **rolling mean** are **above** oracle (about **+0.35%** and **+0.47%**). The LP objective omits per-order fixed costs; the simulator adds them, so ranking by realized KPIs need not match the LP optimum.
 - Realized fill rate can sit far below the nominal 95% LP service target because the aggregate fill constraint binds on **planning** demand (forecast or truth in the LP), not on realized demand.
-- Stress multipliers on true demand move total cost and fill rate without re-fitting forecasts, illustrating sensitivity of a fixed plan under scale misspecification.
+- Stress multipliers on true demand move total cost and fill rate without re-fitting forecasts, illustrating sensitivity of a fixed **naive batch** plan under scale misspecification.
 
 ---
 
@@ -92,7 +92,7 @@ The system is decomposed into three subsystems: **prediction**, **optimization**
 
 | Subsystem | Function |
 |-----------|----------|
-| Prediction | Seasonal naive and lag-feature gradient boosting produce test-horizon planning demand matrices. |
+| Prediction | Seasonal naive, HGB on lags, last-value, and rolling-mean baselines produce test-horizon planning demand matrices (`forecast_suite` in config). |
 | Optimization | Multi-SKU LP minimizes holding plus variable ordering plus shortage penalties with aggregate fill and per-period capacity. |
 | Evaluation | Oracle uses truth in the LP; forecast scenarios use d_hat in the LP, then simulate realized cost and fill under true demand with fixed orders. |
 
@@ -103,7 +103,7 @@ The system is decomposed into three subsystems: **prediction**, **optimization**
            │
            ▼
   ┌────────────────────┐      planning demand d_plan
-  │ Forecast subsystem │  (d_hat from naive or ML, or d_true for oracle)
+  │ Forecast subsystem │  (d_hat from baselines or d_true for oracle)
   └─────────┬──────────┘
             │
             ▼
@@ -130,10 +130,12 @@ Real transaction data from the [UCI Online Retail](https://archive.ics.uci.edu/d
 
 ### 5.2 Forecasting layer
 
-Both methods produce a nonnegative matrix of planning demand on the test horizon.
+Each method produces a nonnegative matrix of planning demand on the test horizon (config `forecast_suite` selects which run).
 
 - **Seasonal naive:** for each SKU, forecast at test period t uses the same seasonal lag (e.g. week t−52) when available in training; otherwise the closest prior lag.
 - **ML (HGB):** `HistGradientBoostingRegressor` on lags 1, 2, 7, 14 and an encoded SKU index; trained on training periods only; recursive one-step predictions over the test window.
+- **Last value:** forecast at t equals realized demand at t−1 when available in history.
+- **Rolling mean:** mean of the last K periods strictly before t (K = `rolling_mean_window` in config).
 
 ### 5.3 Optimization layer (linear program)
 
@@ -163,8 +165,9 @@ Given fixed orders from the LP, the simulator steps through periods with **true*
 
 ### 5.5 Methods snapshot (config echo)
 
-- Data: UCI Online Retail, top 48 SKUs by volume, 53 weekly periods (this run).
-- Train fraction 75%; test from period 39 onward.
+- Data: UCI Online Retail, top 48 SKUs by volume, **53** distinct weekly periods in the filtered panel (**n_periods** in manifest; see `outputs/run_manifest.json`).
+- Train fraction 75%; test from period **39** onward.
+- **Planning:** `planning_mode: batch` (single LP over the test horizon); `rolling_horizon_periods` applies when `planning_mode: rolling`.
 - LP service target: aggregate fill ≥ 95% on planning demand.
 - Solver: PuLP + CBC; fixed ordering charged in simulation only.
 
@@ -174,31 +177,59 @@ Given fixed orders from the LP, the simulator steps through periods with **true*
 
 ## 6. Analysis, results, and interpretation
 
-Orders come from the LP on **planning** demand; KPIs below are simulated against **true** test demand.
+Orders come from the LP on **planning** demand (`planning_mode: batch` in this snapshot); KPIs below are simulated against **true** test demand.
 
 | Scenario | Realized total cost | Realized fill rate |
 |----------|---------------------|---------------------|
 | oracle_perfect_demand | 3,328,858.25 | 0.0270 |
 | naive_seasonal | 3,271,715.00 | 0.0422 |
 | ml_hgb_lags | 3,274,647.89 | 0.0400 |
+| last_value | 3,340,406.00 | 0.0264 |
+| rolling_mean | 3,344,529.66 | 0.0158 |
 
-**Interpretation.** Oracle realized cost exceeds naive and ML by about **+1.72%** and **+1.63%** respectively (naive and ML are cheaper than oracle on simulated total cost). This reflects **objective mismatch**: the LP minimizes linear holding, variable ordering, and shortage costs **without** fixed ordering charges, while the simulator adds fixed cost per placement. The oracle LP remains optimal for its stated objective on planning demand; it is not guaranteed to minimize the simulator’s objective. Realized fill rates stay well below τ = 95% because τ constrains the LP on planning demand, not on out-of-sample truth.
+**Point forecast error vs truth** (test window; `outputs/decision_metrics.csv`): MAE / RMSE — oracle **0 / 0** (identity); naive **525.0 / 3244.6**; ML **470.0 / 3195.1**; last value **495.6 / 3226.2**; rolling mean **551.1 / 3248.1**. Regret vs oracle on realized total cost (%): naive **−1.72**; ML **−1.63**; last value **+0.35**; rolling mean **+0.47**.
 
-**Naive vs ML:** ML is slightly more expensive than naive on this split (~0.09% higher cost), consistent with decision loss differing from forecast accuracy.
+**Interpretation.** Naive and ML sit **below** oracle on realized cost; last value and rolling mean sit **above** oracle on this split. That reflects **objective mismatch** (LP omits fixed ordering; simulator adds it) and **predict-then-optimize** effects: lower RMSE (ML vs naive) does not imply lower realized cost. Realized fill rates stay well below τ = 95% because τ constrains the LP on planning demand, not on out-of-sample truth.
 
-**Figure:** `outputs/cost_by_scenario.png` bar chart of realized cost by scenario.
+**Naive vs ML:** ML is slightly more expensive than naive on realized cost (~0.09% higher), consistent with decision loss differing from forecast accuracy.
+
+Section 7 writes PNGs under **`outputs/`**; the same narratives appear in **`report.html`** / **`outputs/report.html`** (generated in Section 9).
+
+### Figure 1: Realized total cost by scenario (`outputs/cost_by_scenario.png`)
+
+The bar chart ranks each scenario by **realized** total cost after simulating the LP’s orders under **true** test demand. It complements the table above: bar height reflects the **simulator** cost stack (holding, variable and fixed ordering, stockouts). Because the LP omits fixed ordering and the simulator does not, a shorter bar than oracle is possible without contradicting LP optimality on planning demand.
+
+![Realized total cost by scenario](outputs/cost_by_scenario.png)
+
+### Figure 2: Regret vs oracle (`outputs/decision_regret_vs_oracle.png`)
+
+Regret is \((\text{realized cost} - \text{oracle realized cost}) / \text{oracle realized cost} \times 100\%\) for each non-oracle scenario. **Negative** bars mean that scenario **beat** the oracle on realized cost in this run (often explained by objective mismatch). **Positive** bars mean higher realized cost than the perfect-foresight LP plan. This chart makes the predict-then-optimize comparison explicit in one view.
+
+![Regret vs oracle on realized cost](outputs/decision_regret_vs_oracle.png)
+
+### Figure 3: Forecast error vs truth (`outputs/forecast_error_mae_rmse.png`)
+
+MAE and RMSE pool point forecast error against true demand over the test window (definition in the notebook). **Lower RMSE does not imply lower regret:** for example, ML can improve RMSE versus naive while realized cost moves the other way, which is why decision metrics are reported next to forecast metrics.
+
+![Forecast error MAE and RMSE](outputs/forecast_error_mae_rmse.png)
 
 ---
 
 ## 7. Sensitivity analysis
 
-True demand is scaled by a multiplier while the order plan stays fixed from the naive-forecast LP at multiplier 1.0. Forecasts are not re-fit.
+True demand is scaled by a multiplier while the order plan stays fixed from the **naive seasonal batch** LP at multiplier 1.0. Forecasts are not re-fit.
 
 | Demand multiplier | Realized total cost | Realized fill rate |
 |--------------------|---------------------|---------------------|
 | 0.9 | 2,945,405.70 | 0.0434 |
 | 1.0 | 3,271,715.00 | 0.0422 |
-| 1.1 | 3,599,179.22 | 0.0410 |
+| 1.1 | 3,599,179.23 | 0.0410 |
+
+### Figure 4: Demand stress (`outputs/sensitivity_naive_cost.png`)
+
+The dual-axis line chart matches the table: **true** demand is scaled by the multiplier while the **naive seasonal batch** order plan stays fixed. The left axis tracks realized total cost (it rises from about **2.95M** to **3.60M** across multipliers **0.9–1.1** in this snapshot); the right axis shows realized fill drifting with scale. Forecasts are not re-fit and the LP is not re-solved, so this isolates **level** misspecification of demand holding the plan constant.
+
+![Sensitivity: cost and fill vs demand multiplier](outputs/sensitivity_naive_cost.png)
 
 ---
 
@@ -230,9 +261,9 @@ The pipeline separates forecasting, LP-based planning, and simulation-based eval
 1. `python -m venv .venv` and activate it.
 2. `pip install -r requirements.txt` (includes `openpyxl` for UCI Excel).
 3. From the repo root, run **`optimization_ml_hybrid_walkthrough.ipynb`** top to bottom.
-4. Run **`python scripts/generate_report.py`** to refresh `report.html`, `outputs/report.html`, and `outputs/run_summary.json`.
+4. Run **Section 9** in **`optimization_ml_hybrid_walkthrough.ipynb`** to refresh `report.html`, `outputs/report.html`, and `outputs/run_summary.json`.
 
-**Optional:** `make report` if you use `make`. For CI without the full notebook, `SKIP_NOTEBOOK_E2E=1` and `pytest` where applicable.
+For CI without the full notebook, `SKIP_NOTEBOOK_E2E=1` and `pytest` where applicable.
 
 ---
 
@@ -248,9 +279,9 @@ Reinforcement learning fits when a simulator is cheap and actions are stable. He
 |------|------|
 | `README.md` | Quick orientation. |
 | **`REPORT.md`** (this file) | Same story as `report.html`, readable without downloading HTML. |
-| **`report.html`** / **`outputs/report.html`** | Styled ESD report (figures embedded by path). |
+| **`report.html`** / **`outputs/report.html`** | Styled ESD report; figures in §6–§7 with short analysis paragraphs under each image. |
 | **`outputs/run_summary.json`** | Machine-readable KPIs and config echo. |
-| `optimization_ml_hybrid_walkthrough.ipynb` | Only implementation source; writes `outputs/*.csv`, PNG, manifest. |
+| `optimization_ml_hybrid_walkthrough.ipynb` | Only implementation source; writes `outputs/*.csv`, PNG, manifest; Section 9 writes HTML and `run_summary.json`. |
 
 ---
 

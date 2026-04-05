@@ -1,6 +1,6 @@
 {
   "project": "optimization-ml-hybrid",
-  "generated_at": "2026-04-05 08:55 UTC",
+  "generated_at": "2026-04-05 10:48 UTC",
   "experiment": {
     "random_seed": 42,
     "data_source": "uci_online_retail",
@@ -15,7 +15,12 @@
       0.9,
       1.0,
       1.1
-    ]
+    ],
+    "planning_mode": "batch",
+    "rolling_horizon_periods": 13,
+    "rolling_mean_window": 8,
+    "forecast_suite": "all",
+    "export_html": true
   },
   "costs_keys": [
     "holding_per_unit_period",
@@ -40,6 +45,16 @@
       "scenario": "ml_hgb_lags",
       "total_cost": 3274647.885764,
       "fill_rate": 0.0400039131305695
+    },
+    {
+      "scenario": "last_value",
+      "total_cost": 3340406.0,
+      "fill_rate": 0.0264461133013875
+    },
+    {
+      "scenario": "rolling_mean",
+      "total_cost": 3344529.65625,
+      "fill_rate": 0.0157679258593394
     }
   ],
   "sensitivity_naive_forecast": [
@@ -63,10 +78,19 @@
     "n_skus": 48,
     "n_periods": 53,
     "cutoff": 39,
-    "data_source": "uci_online_retail"
+    "data_source": "uci_online_retail",
+    "planning_mode": "batch",
+    "rolling_horizon_periods": 13,
+    "forecast_suite": "all"
   },
   "gaps_vs_oracle_pct": {
     "naive": -1.717,
     "ml": -1.628
+  },
+  "gaps_vs_oracle_pct_all": {
+    "naive_seasonal": -1.717,
+    "ml_hgb_lags": -1.628,
+    "last_value": 0.347,
+    "rolling_mean": 0.471
   }
 }

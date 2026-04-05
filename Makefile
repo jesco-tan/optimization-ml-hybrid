@@ -1,4 +1,4 @@
-.PHONY: test test-fast report
+.PHONY: test test-fast
 
 # Full test: executes the walkthrough notebook (slow).
 test:
@@ -8,5 +8,4 @@ test:
 test-fast:
 	set SKIP_NOTEBOOK_E2E=1 && python -m pytest tests -q
 
-report:
-	python scripts/generate_report.py
+# HTML report: run Section 9 in optimization_ml_hybrid_walkthrough.ipynb (no separate script).

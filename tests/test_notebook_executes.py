@@ -35,7 +35,6 @@ def test_walkthrough_notebook_executes() -> None:
         [
             sys.executable,
             "-m",
-            "jupyter",
             "nbconvert",
             "--to",
             "notebook",
@@ -52,3 +51,4 @@ def test_walkthrough_notebook_executes() -> None:
     )
     assert OUT_EXEC.is_file(), "nbconvert did not write executed notebook"
     OUT_EXEC.unlink(missing_ok=True)
+
